@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<meta name="theme-color" content="#123524"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Baseball Duel"/>
+<link rel="manifest" href="./manifest.webmanifest"/>
+<link rel="apple-touch-icon" href="./assets/icon-192.png"/>
+<title>Backyard Baseball Duel</title>
+<style>
+:root {
+  --bg: #0b1d15;
+  --panel: rgba(7, 18, 14, .88);
+  --field: #2f7d32;
+  --dirt: #b77a3b;
+  --chalk: #f8f5e9;
+  --accent: #ffd166;
+  --danger: #ef476f;
+  --good: #06d6a0;
+  --muted: rgba(255,255,255,.74);
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  background: radial-gradient(circle at top, #1f5a3d, #07120e 72%);
+  color: #fff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  user-select: none;
+}
+body {
+  min-height: 100dvh;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+.app {
+  width: min(100%, 520px);
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 8px;
+  padding: 10px;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+h1 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--accent);
+  letter-spacing: .2px;
+}
+.icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.10);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.14);
+  font-size: 20px;
+  box-shadow: none;
+}
+.score {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 16px;
+  padding: 8px 6px;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(0,0,0,.22);
+}
+.card .label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.card .value {
+  font-size: 18px;
+  font-weight: 900;
+}
+.stage {
+  position: relative;
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 18px 50px rgba(0,0,0,.28);
+}
+canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  aspect-ratio: 9 / 12;
+  border-radius: 18px;
+  border: 2px solid rgba(255,255,255,.12);
+  background: #2f7d32;
+}
+.message {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 18px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(0,0,0,.50);
+  border: 1px solid rgba(255,255,255,.15);
+  font-size: 14px;
+  line-height: 1.25;
+  backdrop-filter: blur(6px);
+}
+.hud-bottom {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 10px;
+  pointer-events: none;
+}
+.bases {
+  width: 78px;
+  height: 78px;
+  position: relative;
+  background: rgba(0,0,0,.30);
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.14);
+}
+.base {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  transform: rotate(45deg);
+  background: rgba(255,255,255,.20);
+  border: 2px solid white;
+}
+.base.on { background: var(--accent); }
+#b2 { top: 8px; left: 28px; }
+#b1 { top: 30px; right: 8px; }
+#b3 { top: 30px; left: 8px; }
+#home { bottom: 8px; left: 28px; background: rgba(255,255,255,.40); }
+.meterWrap {
+  flex: 1;
+  background: rgba(0,0,0,.30);
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.14);
+  padding: 10px;
+}
+.meter {
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255,255,255,.14);
+}
+.meter div {
+  height: 100%;
+  width: 50%;
+  background: linear-gradient(90deg, var(--danger), var(--accent), var(--good));
+}
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-bottom: max(6px, var(--safe-bottom));
+}
+button {
+  border: none;
+  border-radius: 18px;
+  padding: 15px 12px;
+  font-weight: 900;
+  color: #07120e;
+  background: var(--accent);
+  box-shadow: 0 5px 0 #a77216;
+  font-size: 16px;
+}
+button:active { transform: translateY(4px); box-shadow: 0 1px 0 #a77216; }
+button.secondary { background: #d8f3dc; box-shadow: 0 5px 0 #70a56c; }
+button.danger { background: var(--danger); color: white; box-shadow: 0 5px 0 #9a2342; }
+button.good { background: var(--good); box-shadow: 0 5px 0 #067b61; }
+.full { grid-column: 1 / -1; }
+.panel {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.68);
+  z-index: 10;
+  padding: max(24px, var(--safe-top)) 14px max(24px, var(--safe-bottom));
+}
+.panel.open { display: grid; place-items: center; }
+.sheet {
+  width: min(520px, 100%);
+  max-height: 90dvh;
+  overflow: auto;
+  background: #0b1d15;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 24px;
+  padding: 18px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.5);
+}
+.sheet h2 { margin: 0 0 8px; color: var(--accent); }
+.sheet p, .sheet li { color: rgba(255,255,255,.82); line-height: 1.45; }
+.sheet select, .sheet input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.08);
+  color: white;
+  font-weight: 800;
+  margin: 6px 0 14px;
+}
+.install {
+  background: rgba(255,209,102,.13);
+  border: 1px solid rgba(255,209,102,.34);
+  border-radius: 16px;
+  padding: 12px;
+  margin: 10px 0;
+}
+.small { font-size: 13px; color: rgba(255,255,255,.76); }
+@media (display-mode: standalone) {
+  .installHint { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <h1>Backyard Baseball Duel</h1>
+    <div>
+      <button class="icon-btn" id="soundBtn" aria-label="Toggle sound">🔈</button>
+      <button class="icon-btn" id="menuBtn" aria-label="Open menu">☰</button>
+    </div>
+  </div>
+
+  <section class="score">
+    <div class="card"><div class="label">You</div><div class="value" id="awayScore">0</div></div>
+    <div class="card"><div class="label">CPU</div><div class="value" id="homeScore">0</div></div>
+    <div class="card"><div class="label">Inning</div><div class="value"><span id="half">Top</span> <span id="inning">1</span></div></div>
+    <div class="card"><div class="label">Outs</div><div class="value" id="outs">0</div></div>
+    <div class="card"><div class="label">Count</div><div class="value"><span id="balls">0</span>-<span id="strikes">0</span></div></div>
+  </section>
+
+  <section class="stage">
+    <canvas id="game" width="450" height="600"></canvas>
+    <div class="message" id="message">Tap Start Game. Add this to your iPhone Home Screen after hosting it online.</div>
+    <div class="hud-bottom">
+      <div class="meterWrap">
+        <div class="small">Timing</div>
+        <div class="meter"><div id="timingMeter"></div></div>
+      </div>
+      <div class="bases">
+        <div class="base" id="b2"></div>
+        <div class="base" id="b1"></div>
+        <div class="base" id="b3"></div>
+        <div class="base" id="home"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="controls">
+    <button class="good" id="startBtn">Start</button>
+    <button id="swingBtn">Swing / Pitch</button>
+    <button class="secondary" id="contactBtn">Contact Swing</button>
+    <button class="danger" id="resetBtn">Reset</button>
+  </section>
+</div>
+
+<div class="panel" id="menuPanel">
+  <div class="sheet">
+    <h2>Game Menu</h2>
+    <label>Difficulty</label>
+    <select id="difficulty">
+      <option value="rookie">Rookie</option>
+      <option value="pro" selected>Pro</option>
+      <option value="legend">Legend</option>
+    </select>
+    <label>Innings</label>
+    <select id="inningsSelect">
+      <option value="3" selected>3 innings</option>
+      <option value="6">6 innings</option>
+      <option value="9">9 innings</option>
+    </select>
+
+    <div class="install installHint">
+      <strong>Install on iPhone</strong>
+      <p>Host this folder online, open the URL in Safari, tap Share, then choose <strong>Add to Home Screen</strong>. After that it launches like an app and works offline after first load.</p>
+    </div>
+
+    <p><strong>Controls:</strong> tap Swing / Pitch. Use Contact Swing for safer contact and less power.</p>
+    <p><strong>Included:</strong> balls, strikes, walks, strikeouts, singles, doubles, triples, home runs, errors, double plays, saved settings, offline cache, app icon, full-screen PWA mode.</p>
+    <button class="full" id="saveCloseBtn">Save & Close</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const els = {
+  awayScore: document.getElementById("awayScore"),
+  homeScore: document.getElementById("homeScore"),
+  half: document.getElementById("half"),
+  inning: document.getElementById("inning"),
+  outs: document.getElementById("outs"),
+  balls: document.getElementById("balls"),
+  strikes: document.getElementById("strikes"),
+  message: document.getElementById("message"),
+  timingMeter: document.getElementById("timingMeter"),
+  b1: document.getElementById("b1"),
+  b2: document.getElementById("b2"),
+  b3: document.getElementById("b3"),
+  menuPanel: document.getElementById("menuPanel"),
+  difficulty: document.getElementById("difficulty"),
+  inningsSelect: document.getElementById("inningsSelect"),
+  soundBtn: document.getElementById("soundBtn")
+};
+
+const saved = JSON.parse(localStorage.getItem("bbd-settings") || "{}");
+if (saved.difficulty) els.difficulty.value = saved.difficulty;
+if (saved.innings) els.inningsSelect.value = saved.innings;
+
+const state = {
+  started: false, gameOver: false, inning: 1, maxInnings: Number(els.inningsSelect.value),
+  half: "Top", outs: 0, balls: 0, strikes: 0, away: 0, home: 0,
+  bases: [false,false,false], mode: "idle", pitch: null, ball: null, cpuBatting: false,
+  sound: saved.sound ?? true, particles: [], lastHit: null,
+  crowd: Array.from({length: 52}, () => ({x: Math.random()*450, y: 22+Math.random()*48, s: 2+Math.random()*2.4}))
+};
+
+function difficultyConfig() {
+  const d = els.difficulty.value;
+  if (d === "rookie") return {pitchMin: 2.2, pitchMax: 3.4, cpuMin: .20, cpuMax: .78, cpuDiscipline: .45};
+  if (d === "legend") return {pitchMin: 3.2, pitchMax: 4.9, cpuMin: .45, cpuMax: .98, cpuDiscipline: .72};
+  return {pitchMin: 2.7, pitchMax: 4.2, cpuMin: .30, cpuMax: .90, cpuDiscipline: .60};
+}
+
+function beep(freq=440, dur=.05, type="sine") {
+  if (!state.sound) return;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ac = beep.ctx || (beep.ctx = new AudioContext());
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.frequency.value = freq; o.type = type;
+    g.gain.value = .035;
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + dur);
+  } catch(e) {}
+}
+
+function rand(a,b){return Math.random()*(b-a)+a}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function setMessage(m){els.message.textContent=m}
+function resetCount(){state.balls=0;state.strikes=0}
+function ordinal(n){return n===1?"1st":n===2?"2nd":n===3?"3rd":`${n}th`}
+
+function saveSettings() {
+  localStorage.setItem("bbd-settings", JSON.stringify({
+    difficulty: els.difficulty.value,
+    innings: els.inningsSelect.value,
+    sound: state.sound
+  }));
+}
+
+function updateUI() {
+  els.awayScore.textContent = state.away;
+  els.homeScore.textContent = state.home;
+  els.half.textContent = state.half === "Top" ? "▲" : "▼";
+  els.inning.textContent = state.inning;
+  els.outs.textContent = state.outs;
+  els.balls.textContent = state.balls;
+  els.strikes.textContent = state.strikes;
+  els.b1.classList.toggle("on", !!state.bases[0]);
+  els.b2.classList.toggle("on", !!state.bases[1]);
+  els.b3.classList.toggle("on", !!state.bases[2]);
+  els.soundBtn.textContent = state.sound ? "🔈" : "🔇";
+}
+
+function startGame() {
+  state.maxInnings = Number(els.inningsSelect.value);
+  Object.assign(state, {
+    started:true, gameOver:false, inning:1, half:"Top", outs:0, balls:0, strikes:0,
+    away:0, home:0, bases:[false,false,false], mode:"ready", cpuBatting:false, ball:null
+  });
+  saveSettings();
+  setMessage("Top 1st. You bat first. Time your swing at the plate.");
+  updateUI(); beep(660,.08,"triangle"); setTimeout(newPitch, 350);
+}
+
+function resetGame() {
+  Object.assign(state, {started:false, gameOver:false, inning:1, half:"Top", outs:0, balls:0, strikes:0, away:0, home:0, bases:[false,false,false], mode:"idle", cpuBatting:false, pitch:null, ball:null});
+  setMessage("Tap Start Game. Add this to your iPhone Home Screen after hosting it online.");
+  updateUI();
+}
+
+function newPitch() {
+  if (!state.started || state.gameOver) return;
+  const cfg = difficultyConfig();
+  state.mode = "pitching";
+  const speed = rand(cfg.pitchMin, cfg.pitchMax) + state.inning * .04;
+  const targetX = 225 + rand(-44,44);
+  state.pitch = {x:225 + rand(-9,9), y:190, plateY:488, speed, targetX, swingDone:false, arrived:false};
+  setMessage(state.cpuBatting ? `CPU batting. Tap Pitch.` : `Pitch incoming. Tap Swing at the plate.`);
+}
+
+function handleSwing(contact=false) {
+  if (!state.started || state.gameOver) return;
+  if (state.cpuBatting) {
+    if (state.mode === "pitching") cpuAtBat();
+    return;
+  }
+  if (state.mode !== "pitching" || !state.pitch || state.pitch.swingDone) return;
+  state.pitch.swingDone = true;
+  const p = state.pitch;
+  const timing = 1 - Math.abs(p.y - 485) / 155;
+  const zone = 1 - Math.abs(p.targetX - 225) / 70;
+  let q = clamp(timing*.72 + zone*.28, 0, 1);
+  if (contact) q = clamp(q + .12, 0, .84);
+  els.timingMeter.style.width = Math.round(q*100)+"%";
+  if (q < .22) {
+    state.strikes++; beep(150,.07,"sawtooth");
+    setMessage("Swing and miss.");
+    checkCount();
+    return;
+  }
+  let r = Math.random(), outcome;
+  if (q > .92) outcome = r < .55 ? "HR" : r < .78 ? "3B" : "2B";
+  else if (q > .75) outcome = r < .20 ? "HR" : r < .52 ? "2B" : r < .76 ? "1B" : "OUT";
+  else if (q > .52) outcome = r < .08 ? "2B" : r < .48 ? "1B" : r < .72 ? "ERROR" : "OUT";
+  else outcome = r < .22 ? "1B" : r < .30 ? "ERROR" : "OUT";
+  animateHit(outcome, q);
+}
+
+function pitchTaken() {
+  if (!state.pitch || state.pitch.swingDone || state.cpuBatting) return;
+  const inZone = Math.abs(state.pitch.targetX - 225) < 32;
+  if (inZone) { state.strikes++; setMessage("Called strike."); beep(220,.06,"square"); }
+  else { state.balls++; setMessage("Ball outside."); beep(330,.04,"sine"); }
+  checkCount();
+}
+
+function checkCount() {
+  if (state.balls >= 4) {
+    resetCount(); advanceRunners(1, true); setMessage("Walk. Take your base."); afterPlay(); return;
+  }
+  if (state.strikes >= 3) {
+    state.outs++; resetCount(); setMessage("Strike three. Batter is out."); afterPlay(); return;
+  }
+  updateUI(); setTimeout(newPitch, 750);
+}
+
+function cpuAtBat() {
+  const cfg = difficultyConfig();
+  const p = state.pitch;
+  if (!p || p.swingDone) return;
+  p.swingDone = true;
+  const outside = Math.abs(p.targetX - 225) > 36;
+  if (outside && Math.random() < cfg.cpuDiscipline) {
+    state.balls++; setMessage("CPU takes. Ball."); checkCount(); return;
+  }
+  const skill = rand(cfg.cpuMin, cfg.cpuMax);
+  const zone = 1 - Math.abs(p.targetX - 225)/70;
+  const q = clamp(skill*.70 + zone*.30, 0, 1);
+  els.timingMeter.style.width = Math.round(q*100)+"%";
+  if (q < .32) {
+    state.strikes++; setMessage("CPU swings and misses."); beep(180,.06,"sawtooth"); checkCount(); return;
+  }
+  let r = Math.random(), outcome;
+  if (q > .88) outcome = r < .28 ? "HR" : r < .55 ? "2B" : r < .68 ? "3B" : "1B";
+  else if (q > .65) outcome = r < .08 ? "HR" : r < .25 ? "2B" : r < .58 ? "1B" : "OUT";
+  else outcome = r < .25 ? "1B" : r < .32 ? "ERROR" : "OUT";
+  animateHit(outcome, q);
+}
+
+function animateHit(outcome, q) {
+  state.mode = "hit"; state.lastHit = outcome; beep(outcome === "HR" ? 880 : 520, .08, "triangle");
+  const angle = {"1B":rand(-.75,-.25),"2B":rand(-1.0,-.45),"3B":rand(-1.2,-.75),"HR":rand(-1.15,-.35),"ERROR":rand(-.75,-.20),"OUT":rand(-1.05,-.20)}[outcome];
+  const power = {"1B":6.3,"2B":8.6,"3B":10.5,"HR":13.0,"ERROR":6.2,"OUT":8.0}[outcome];
+  state.ball = {x:225,y:488,vx:Math.cos(angle)*power,vy:Math.sin(angle)*power,g:.27,outcome,life:0};
+  for (let i=0;i<10;i++) state.particles.push({x:225,y:488,vx:rand(-2,2),vy:rand(-3,-.5),life:24});
+  setTimeout(()=>resolveOutcome(outcome), 920);
+}
+
+function scoreRun(){ if(state.half==="Top")state.away++; else state.home++; }
+function advanceRunners(bases, force=false) {
+  const old = [...state.bases]; state.bases=[false,false,false]; let runs=0;
+  for (let i=2;i>=0;i--) if(old[i]) {
+    const t=i+bases;
+    if(t>=3){scoreRun();runs++} else state.bases[t]=true;
+  }
+  if (bases>=4){scoreRun();runs++}
+  else { if(force && old[0]&&old[1]&&old[2]){scoreRun();runs++} state.bases[bases-1]=true; }
+  return runs;
+}
+function resolveOutcome(outcome) {
+  resetCount();
+  if (outcome === "OUT") {
+    const dp = state.bases[0] && state.outs < 2 && Math.random() < .18;
+    state.outs += dp ? 2 : 1;
+    if (dp) { state.bases[0]=false; setMessage("Grounder. Double play."); }
+    else setMessage("Caught for an out.");
+  } else if (outcome === "ERROR") {
+    advanceRunners(1); setMessage("Error. Batter reaches first.");
+  } else {
+    const before = state.away + state.home;
+    const bases = outcome==="1B"?1:outcome==="2B"?2:outcome==="3B"?3:4;
+    advanceRunners(bases);
+    const scored = state.away + state.home - before;
+    const label = { "1B":"Single", "2B":"Double", "3B":"Triple", "HR":"Home run" }[outcome];
+    setMessage(label + (scored ? `, ${scored} run${scored>1?"s":""} score.` : "."));
+  }
+  afterPlay();
+}
+function afterPlay() {
+  updateUI(); state.ball=null;
+  if (state.outs >= 3) changeSides();
+  else setTimeout(newPitch, 900);
+}
+function changeSides() {
+  state.outs=0; resetCount(); state.bases=[false,false,false];
+  if (state.half==="Top") {
+    state.half="Bottom"; state.cpuBatting=true;
+    setMessage(`Bottom ${ordinal(state.inning)}. CPU bats. Tap Pitch.`);
+  } else {
+    if (state.inning >= state.maxInnings) return endGame();
+    state.inning++; state.half="Top"; state.cpuBatting=false;
+    setMessage(`Top ${ordinal(state.inning)}. You bat.`);
+  }
+  updateUI(); setTimeout(newPitch, 900);
+}
+function endGame() {
+  state.gameOver=true; state.mode="idle";
+  const result = state.away>state.home ? "You win." : state.home>state.away ? "CPU wins." : "Tie game.";
+  setMessage(`Final: You ${state.away}, CPU ${state.home}. ${result}`);
+  updateUI(); beep(state.away>state.home ? 900 : 220, .14, "triangle");
+}
+
+function drawBase(x,y,on) {
+  ctx.save(); ctx.translate(x,y); ctx.rotate(Math.PI/4);
+  ctx.fillStyle = on ? "#ffd166" : "#f8f5e9";
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+  ctx.fillRect(-8,-8,16,16); ctx.strokeRect(-8,-8,16,16); ctx.restore();
+}
+function drawPlayer(x,y,shirt,pants) {
+  ctx.fillStyle=pants; ctx.fillRect(x-6,y+10,5,13); ctx.fillRect(x+1,y+10,5,13);
+  ctx.fillStyle=shirt; ctx.beginPath(); ctx.roundRect(x-9,y-4,18,18,5); ctx.fill();
+  ctx.fillStyle="#f1c27d"; ctx.beginPath(); ctx.arc(x,y-12,8,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#111"; ctx.fillRect(x-6,y-19,12,4);
+}
+function drawField() {
+  ctx.clearRect(0,0,450,600);
+  ctx.fillStyle="#84c5f4"; ctx.fillRect(0,0,450,88);
+  ctx.fillStyle="#31414a"; ctx.fillRect(0,58,450,42);
+  state.crowd.forEach(c=>{ctx.fillStyle=["#ffd166","#ef476f","#06d6a0","#f8f5e9"][Math.floor((c.x+c.y)%4)];ctx.fillRect(c.x,c.y,c.s,c.s)});
+  ctx.fillStyle="#2f7d32"; ctx.fillRect(0,88,450,512);
+  for(let i=0;i<8;i++){ctx.fillStyle=i%2?"rgba(255,255,255,.035)":"rgba(0,0,0,.035)";ctx.beginPath();ctx.moveTo(225,488);ctx.arc(225,488,450,(-165+i*24)*Math.PI/180,(-145+i*24)*Math.PI/180);ctx.closePath();ctx.fill();}
+  ctx.fillStyle="#b77a3b"; ctx.beginPath(); ctx.moveTo(225,488); ctx.lineTo(314,395); ctx.lineTo(225,300); ctx.lineTo(136,395); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle="#f8f5e9"; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(225,488); ctx.lineTo(58,128); ctx.moveTo(225,488); ctx.lineTo(392,128); ctx.stroke();
+  drawBase(225,488,true); drawBase(314,395,state.bases[0]); drawBase(225,300,state.bases[1]); drawBase(136,395,state.bases[2]);
+  ctx.fillStyle="#9c642d"; ctx.beginPath(); ctx.ellipse(225,375,32,17,0,0,Math.PI*2); ctx.fill();
+  [[225,363,"#ffffff","#1b4332"],[190,482,"#ffd166","#073b4c"],[130,260,"#e6f2ff","#5b2333"],[320,260,"#e6f2ff","#5b2333"],[88,390,"#e6f2ff","#5b2333"],[362,390,"#e6f2ff","#5b2333"],[225,230,"#e6f2ff","#5b2333"],[65,150,"#e6f2ff","#5b2333"],[385,150,"#e6f2ff","#5b2333"]].forEach(p=>drawPlayer(...p));
+  ctx.strokeStyle="#d6a75a";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(200,470);ctx.lineTo(224,438);ctx.stroke();
+  ctx.strokeStyle="rgba(255,255,255,.55)";ctx.lineWidth=2;ctx.strokeRect(202,444,46,58);
+  if (state.pitch && state.mode==="pitching") {ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(state.pitch.x,state.pitch.y,6,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#d62828";ctx.stroke();}
+  if (state.ball) {ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(state.ball.x,state.ball.y,7,0,Math.PI*2);ctx.fill();}
+  state.particles.forEach(p=>{ctx.fillStyle="rgba(255,209,102,.75)";ctx.fillRect(p.x,p.y,3,3)});
+  if (!state.started || state.gameOver) {
+    ctx.fillStyle="rgba(0,0,0,.52)"; ctx.fillRect(0,0,450,600);
+    ctx.textAlign="center"; ctx.fillStyle="#ffd166"; ctx.font="900 34px system-ui";
+    ctx.fillText(state.gameOver ? "Game Over" : "Baseball Duel",225,265);
+    ctx.fillStyle="#fff"; ctx.font="800 17px system-ui";
+    ctx.fillText(state.gameOver ? "Tap Reset or Start" : "Tap Start",225,295);
+    ctx.textAlign="left";
+  }
+}
+function physics() {
+  if (state.pitch && state.mode==="pitching") {
+    const p=state.pitch; p.y += p.speed; p.x += (p.targetX-p.x)*.025;
+    if (p.y >= p.plateY && !p.arrived) {
+      p.arrived = true;
+      setTimeout(()=>{ if(state.mode==="pitching" && state.pitch===p && !p.swingDone) state.cpuBatting ? cpuAtBat() : pitchTaken(); }, 110);
+    }
+    if (p.y > 550 && !p.swingDone && !state.cpuBatting) pitchTaken();
+  }
+  if (state.ball) {state.ball.x += state.ball.vx; state.ball.y += state.ball.vy; state.ball.vy += state.ball.g;}
+  state.particles = state.particles.filter(p=>--p.life>0).map(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.12;return p});
+}
+function loop(){physics();drawField();requestAnimationFrame(loop)}
+
+document.getElementById("startBtn").onclick=startGame;
+document.getElementById("resetBtn").onclick=resetGame;
+document.getElementById("swingBtn").onclick=()=>handleSwing(false);
+document.getElementById("contactBtn").onclick=()=>handleSwing(true);
+document.getElementById("menuBtn").onclick=()=>els.menuPanel.classList.add("open");
+document.getElementById("saveCloseBtn").onclick=()=>{saveSettings();els.menuPanel.classList.remove("open");state.maxInnings=Number(els.inningsSelect.value);};
+els.menuPanel.addEventListener("click", e=>{if(e.target===els.menuPanel) els.menuPanel.classList.remove("open")});
+els.soundBtn.onclick=()=>{state.sound=!state.sound;saveSettings();updateUI();beep(660,.05,"triangle")};
+
+window.addEventListener("keydown", e=>{
+  if(e.code==="Space"){e.preventDefault();handleSwing(false)}
+  if(e.key.toLowerCase()==="c")handleSwing(true)
+  if(e.key.toLowerCase()==="r")resetGame()
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+updateUI(); loop();
+</script>
+</body>
+</html>
